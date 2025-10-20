@@ -1,0 +1,39 @@
+name: open-graph-images-generator
+base: ubuntu@22.04
+version: "1.0.0"
+summary: Open Graph Images Generator
+description: |
+  Open Graph Images Generator is a tool for generating Open Graph images for your social media posts.
+platforms:
+  amd64:
+
+services:
+  go:
+    override: replace
+    command: node /app/build/index.js
+    startup: enabled
+
+parts:
+  app:
+    plugin: npm
+    npm-include-node: true
+    npm-node-version: "22"
+    build-environment:
+      - NPM_CONFIG_IGNORE_SCRIPTS: "true"
+    source: .
+    source-type: local
+    overlay-packages:
+      - ca-certificates
+      - coreutils
+      - bash
+    stage:
+      - -charm
+      - -node_modules
+    override-build: |
+      craftctl default
+      set -eux
+      npm install -g bun
+      bun install
+      bun run build
+      mkdir -p ${CRAFT_PART_INSTALL}/app
+      cp -ar * ${CRAFT_PART_INSTALL}/app

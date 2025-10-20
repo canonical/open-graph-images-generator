@@ -1,3 +1,4 @@
+*.rock
 test-results
 node_modules
 
