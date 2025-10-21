@@ -1,19 +1,4 @@
-type VNode = {
-	type: string;
-	props: {
-		style?: Record<string, unknown>;
-		children?: string | VNode | VNode[];
-		[prop: string]: unknown;
-	};
-};
-
-function isVNode(node: unknown): node is VNode {
-	return typeof node === 'object' && node !== null && 'type' in node && 'props' in node;
-}
-
-function isVNodeArray(node: unknown): node is VNode[] {
-	return Array.isArray(node) && node.every(isVNode);
-}
+import { isVNode, isVNodeArray, type VNode } from './types';
 
 const tagsToApplyDefaultFlexStyle = ['div', 'footer', 'main', 'article'];
 export function applyDefaultFlexStyle(reactLike: VNode) {

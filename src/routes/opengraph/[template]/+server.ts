@@ -8,7 +8,7 @@ import { html } from 'satori-html';
 import { render } from 'svelte/server';
 import z from 'zod';
 import templates from '../../../templates/index.js';
-import { applyDefaultFlexStyle } from './(utils)/index.js';
+import { applyDefaultFlexStyle, applyNumericDimensions } from './(utils)/index.js';
 
 const fontData = read(UbuntuSansVariable).arrayBuffer();
 
@@ -50,7 +50,9 @@ export const GET: RequestHandler = async (event) => {
 		props: inputProps
 	});
 
-	const reactLike = applyDefaultFlexStyle(html(renderedComponent.head + renderedComponent.body));
+	const reactLike = applyNumericDimensions(
+		applyDefaultFlexStyle(html(renderedComponent.head + renderedComponent.body))
+	);
 
 	let svg: string;
 	try {
