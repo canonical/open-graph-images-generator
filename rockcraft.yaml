@@ -1,5 +1,5 @@
 name: open-graph-images-generator
-base: ubuntu@22.04
+base: ubuntu@24.04
 version: "1.0.0"
 summary: Open Graph Images Generator
 description: |
@@ -28,12 +28,12 @@ parts:
       - bash
     stage:
       - -charm
-      - -node_modules
     override-build: |
       craftctl default
       set -eux
       npm install -g bun
       bun install
       bun run build
+      ls -la
       mkdir -p ${CRAFT_PART_INSTALL}/app
       cp -ar * ${CRAFT_PART_INSTALL}/app
