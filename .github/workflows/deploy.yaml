@@ -209,5 +209,5 @@ jobs:
 
           # run the deploy command
           # in a fresh environment first
-          juju deploy ./*.charm --resource app-image=./image_metadata.json ${{ env.APP_NAME }}
-          # juju refresh ${{ env.APP_NAME }} --path=./*.charm --resource app-image=./image_metadata.json
+          # juju deploy ./*.charm --resource app-image=./image_metadata.json ${{ env.APP_NAME }}
+          juju refresh ${{ env.APP_NAME }} --path=./*.charm --resource app-image=./image_metadata.json
