@@ -26,14 +26,13 @@ parts:
       - ca-certificates
       - coreutils
       - bash
-    stage:
-      - -charm
     override-build: |
       craftctl default
       set -eux
-      npm install -g bun
-      bun install
-      bun run build
+      # TODO: replace NPM and Node.js with Bun once this bug fix is live: https://github.com/oven-sh/bun/pull/15047
+      npm install -g pnpm
+      pnpm install
+      pnpm run build
       ls -la
       mkdir -p ${CRAFT_PART_INSTALL}/app
       cp -ar * ${CRAFT_PART_INSTALL}/app
