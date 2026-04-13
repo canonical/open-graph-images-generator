@@ -62,49 +62,39 @@ jobs:
             echo "ref=${GITHUB_SHA}" >> $GITHUB_OUTPUT
           fi
 
-  rockcraft-pack:
-    runs-on: ubuntu-latest
+  build-rock:
     needs: commit-check
+    uses: canonical/oci-factory/.github/workflows/Build-Rock.yaml@main
+    with:
+      oci-archive-name: ${{ github.event.repository.name }}-${{ github.sha }}
+      rock-repo: ${{ github.server_url }}/${{ github.repository }}
+      rock-repo-commit: ${{ needs.commit-check.outputs.REF }}
+      rockfile-directory: "."
+
+  test-rock:
+    needs: build-rock
+    uses: canonical/oci-factory/.github/workflows/Test-Rock.yaml@main
+    with:
+      oci-archive-name: ${{ github.event.repository.name }}-${{ github.sha }}
+  push-to-ghcr:
+    needs: test-rock
+    runs-on: ubuntu-latest
     outputs:
       image_url: ${{ steps.image_url.outputs.image_url }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ needs.commit-check.outputs.REF }}
-
-      - name: Setup LXD
-        uses: canonical/setup-lxd@main
-
-      - name: Install rockcraft
-        run: |
-          sudo snap install --classic rockcraft
-
-      - name: Pack project
-        id: rockcraft-pack
-        run: |
-          sudo rockcraft pack -v
-
-      - name: Upload rock file
-        uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: ${{ env.ROCK_BUILD_NAME }}
-          path: ./*.rock
-
-      - name: Set image URL
-        id: image_url
+      - run: sudo snap install --classic rockcraft
+      - id: image_url
         run: |
           IMAGE_URL=ghcr.io/${{ github.repository }}:$(date +%s)-${GITHUB_SHA:0:7}
-          echo -e "> [!NOTE]\n> Rockcraft OCI image: $IMAGE_URL" >> $GITHUB_STEP_SUMMARY
-          echo $DOCKERHUB_MIRROR
-          echo "ghcr_image_url=$IMAGE_URL" >> $GITHUB_OUTPUT
           echo "image_url=$IMAGE_URL" >> $GITHUB_OUTPUT
-
-      - name: Push to GHCR
-        run: |
-          echo "Pushing to GHCR.."
-          rockcraft.skopeo --insecure-policy copy oci-archive:$(ls *.rock) docker://${{ steps.image_url.outputs.ghcr_image_url }} --dest-creds ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          rockcraft.skopeo --insecure-policy copy \
+            oci-archive:$(ls *.rock) \
+            docker://${{ steps.image_url.outputs.image_url }} \
+            --dest-creds ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}
 
   charmcraft-pack:
     runs-on: ubuntu-24.04
@@ -155,7 +145,7 @@ jobs:
           fi
 
   deploy:
-    needs: [commit-check, rockcraft-pack, charmcraft-pack]
+    needs: [commit-check, push-to-ghcr, charmcraft-pack]
     runs-on:
       [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     environment:
@@ -205,7 +195,7 @@ jobs:
         run: |
           export JUJU_MODEL=admin/$JUJU_MODEL
           echo "Deploying to $JUJU_MODEL"
-          echo "{\"ImageName\": \"${{ needs.rockcraft-pack.outputs.image_url }}\", \"username\":\"${{ secrets.GHCR_READ_USERNAME }}\", \"password\":\"${{ secrets.GHCR_READ_TOKEN }}\"}" > ./image_metadata.json
+          echo "{\"ImageName\": \"${{ needs.push-to-ghcr.outputs.image_url }}\", \"username\":\"${{ secrets.GHCR_READ_USERNAME }}\", \"password\":\"${{ secrets.GHCR_READ_TOKEN }}\"}" > ./image_metadata.json
           # run the deploy command
           # in a fresh environment first
           # juju deploy ./open-graph-images-generator_amd64.charm --resource app-image=./image_metadata.json ${{ env.APP_NAME }}
