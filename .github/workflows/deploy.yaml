@@ -62,8 +62,8 @@ jobs:
             echo "ref=${GITHUB_SHA}" >> $GITHUB_OUTPUT
           fi
 
-  rockcraft-pack:
-    runs-on: ubuntu-latest
+  build-rock:
+    runs-on: ubuntu-24.04
     needs: commit-check
     outputs:
       image_url: ${{ steps.image_url.outputs.image_url }}
@@ -81,15 +81,15 @@ jobs:
         run: |
           sudo snap install --classic rockcraft
 
-      - name: Pack project
-        id: rockcraft-pack
+      - name: Pack rock
         run: |
           sudo rockcraft pack -v
 
-      - name: Upload rock file
+      - name: Upload rock artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ROCK_BUILD_NAME }}
+          if-no-files-found: error
           path: ./*.rock
 
       - name: Set image URL
@@ -105,6 +105,12 @@ jobs:
         run: |
           echo "Pushing to GHCR.."
           rockcraft.skopeo --insecure-policy copy oci-archive:$(ls *.rock) docker://${{ steps.image_url.outputs.ghcr_image_url }} --dest-creds ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}
+
+  test-rock:
+    needs: build-rock
+    uses: canonical/oci-factory/.github/workflows/Test-Rock.yaml@main
+    with:
+      oci-archive-name: ${{ github.event.repository.name }}-${{ github.sha }}.rock
 
   charmcraft-pack:
     runs-on: ubuntu-24.04
@@ -155,7 +161,7 @@ jobs:
           fi
 
   deploy:
-    needs: [commit-check, rockcraft-pack, charmcraft-pack]
+    needs: [commit-check, build-rock, test-rock, charmcraft-pack]
     runs-on:
       [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     environment:
@@ -205,7 +211,7 @@ jobs:
         run: |
           export JUJU_MODEL=admin/$JUJU_MODEL
           echo "Deploying to $JUJU_MODEL"
-          echo "{\"ImageName\": \"${{ needs.rockcraft-pack.outputs.image_url }}\", \"username\":\"${{ secrets.GHCR_READ_USERNAME }}\", \"password\":\"${{ secrets.GHCR_READ_TOKEN }}\"}" > ./image_metadata.json
+          echo "{\"ImageName\": \"${{ needs.build-rock.outputs.image_url }}\", \"username\":\"${{ secrets.GHCR_READ_USERNAME }}\", \"password\":\"${{ secrets.GHCR_READ_TOKEN }}\"}" > ./image_metadata.json
           # run the deploy command
           # in a fresh environment first
           # juju deploy ./open-graph-images-generator_amd64.charm --resource app-image=./image_metadata.json ${{ env.APP_NAME }}
