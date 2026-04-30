@@ -84,13 +84,14 @@ jobs:
       - name: Pack rock
         run: |
           sudo rockcraft pack -v
+          sudo mv *.rock ${{ env.ROCK_BUILD_NAME }}
 
       - name: Upload rock artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ROCK_BUILD_NAME }}
           if-no-files-found: error
-          path: ./*.rock
+          path: ./${{ env.ROCK_BUILD_NAME }}
 
       - name: Set image URL
         id: image_url
@@ -104,7 +105,7 @@ jobs:
       - name: Push to GHCR
         run: |
           echo "Pushing to GHCR.."
-          rockcraft.skopeo --insecure-policy copy oci-archive:$(ls *.rock) docker://${{ steps.image_url.outputs.ghcr_image_url }} --dest-creds ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}
+          rockcraft.skopeo --insecure-policy copy oci-archive:${{ env.ROCK_BUILD_NAME }} docker://${{ steps.image_url.outputs.ghcr_image_url }} --dest-creds ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}
 
   test-rock:
     needs: build-rock
