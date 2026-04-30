@@ -31,7 +31,7 @@ parts:
       set -eux
       # TODO: replace NPM and Node.js with Bun once this bug fix is live: https://github.com/oven-sh/bun/pull/15047
       npm install -g pnpm
-      pnpm install
+      pnpm install --frozen-lockfile
       pnpm run build
       ls -la
       mkdir -p ${CRAFT_PART_INSTALL}/app
