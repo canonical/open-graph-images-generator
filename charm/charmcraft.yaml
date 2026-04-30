@@ -10,20 +10,6 @@ platforms:
 
 extensions:
   - go-framework
-
-parts:
-  charm:
-    charm-binary-python-packages:
-      - cryptography
-      - cffi
-      - pydantic
-      - pydantic-core
-      - rpds-py
-      - jsonschema
-      - jsonschema-specifications
-      - PyYAML
-      - bcrypt
-      - maturin
 # Uncomment the integrations used by your application
 # Integrations set to "optional: false" will block the charm
 # until the applications are integrated.
