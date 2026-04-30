@@ -34,7 +34,7 @@ env:
 
 jobs:
   commit-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       REF: ${{ steps.check-branch.outputs.ref }}
     steps:
@@ -74,16 +74,13 @@ jobs:
           fetch-depth: 0
           ref: ${{ needs.commit-check.outputs.REF }}
 
-      - name: Setup LXD
-        uses: canonical/setup-lxd@main
-
       - name: Install rockcraft
         run: |
           sudo snap install --classic rockcraft
 
       - name: Pack rock
         run: |
-          sudo rockcraft pack -v
+          sudo rockcraft pack -v --destructive-mode
           sudo mv *.rock ${{ env.ROCK_BUILD_NAME }}
 
       - name: Upload rock artifact
@@ -131,6 +128,16 @@ jobs:
           path: ./*.charm
           key: ${{ runner.os}}-charmcraft-${{ hashFiles('./charm/**') }}
 
+      - name: Cache charmcraft build deps
+        if: steps.charm-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/charmcraft-pip
+            /tmp/charmcraft-cargo
+            /tmp/charmcraft-rustup
+          key: ${{ runner.os }}-charmcraft-deps-${{ hashFiles('./charm/requirements.txt') }}
+
       - name: Install charmcraft
         if: steps.charm-cache.outputs.cache-hit != 'true'
         run: |
@@ -142,7 +149,11 @@ jobs:
         run: |
           # --project-dir option doesn't work with destructive-mode
           cd ./charm
-          sudo charmcraft pack -v --destructive-mode
+          sudo --preserve-env=PIP_CACHE_DIR,CARGO_HOME,RUSTUP_HOME \
+            PIP_CACHE_DIR=/tmp/charmcraft-pip \
+            CARGO_HOME=/tmp/charmcraft-cargo \
+            RUSTUP_HOME=/tmp/charmcraft-rustup \
+            charmcraft pack -v --destructive-mode
           mv *.charm ../
 
       - name: Upload charm file
