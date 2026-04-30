@@ -27,12 +27,14 @@ parts:
       - coreutils
       - bash
     override-build: |
-      craftctl default
       set -eux
+      # The npm plugin's default install step uses `npm install` against
+      # package.json with no package-lock.json, which re-resolves and
+      # bypasses pnpm-lock.yaml (re-introducing CVEs the lockfile pinned
+      # away). Skip it and drive the build entirely through pnpm.
       # TODO: replace NPM and Node.js with Bun once this bug fix is live: https://github.com/oven-sh/bun/pull/15047
       npm install -g pnpm
       pnpm install --frozen-lockfile
       pnpm run build
-      ls -la
       mkdir -p ${CRAFT_PART_INSTALL}/app
-      cp -ar * ${CRAFT_PART_INSTALL}/app
+      cp -ar build node_modules package.json ${CRAFT_PART_INSTALL}/app/
