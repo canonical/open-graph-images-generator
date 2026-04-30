@@ -14,14 +14,28 @@ services:
     startup: enabled
 
 parts:
-  app:
+  # Stages only the Node.js runtime binary into the rock. The npm plugin's
+  # `craftctl default` is the hook that honors `npm-include-node`, so it must
+  # run somewhere — but we don't want its `npm install` polluting the final
+  # image (see `app` part comment). Stage filter keeps just `bin/node`.
+  runtime:
     plugin: npm
     npm-include-node: true
     npm-node-version: "22"
-    build-environment:
-      - NPM_CONFIG_IGNORE_SCRIPTS: "true"
     source: .
     source-type: local
+    override-build: |
+      craftctl default
+    stage:
+      - bin/node
+
+  app:
+    plugin: npm
+    source: .
+    source-type: local
+    after: [runtime]
+    build-environment:
+      - NPM_CONFIG_IGNORE_SCRIPTS: "true"
     overlay-packages:
       - ca-certificates
       - coreutils
