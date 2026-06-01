@@ -33,7 +33,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/node": "^25.6.0",
 		"@types/pluralize": "^0.0.33",
-		"@vitest/browser": "^4.1.5",
+		"@vitest/browser": "^4.1.6",
 		"eslint": "^10.2.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-storybook": "^10.3.6",
